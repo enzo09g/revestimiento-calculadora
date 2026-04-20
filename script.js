@@ -1,36 +1,114 @@
-const PRODUCTS = {
-  "10mm": {
-    name: "Revestimiento 10 mm",
-    shortName: "10 mm",
-    widthMeters: 0.25,
-    heightMeters: 2.7,
-    areaDecimals: 3,
-    pricePerSheet: 572,
+const PRODUCT_FAMILIES = {
+  revestimiento: {
+    label: "Revestimiento",
+    selectorTitle: "Elegí qué revestimiento estás vendiendo",
+    products: [
+      {
+        key: "revestimiento-10mm",
+        name: "Revestimiento 10 mm",
+        shortName: "Revestimiento 10 mm",
+        widthMeters: 0.25,
+        heightMeters: 2.7,
+        thickness: "10 mm",
+        areaDecimals: 3,
+        pricePerSheet: 572,
+      },
+      {
+        key: "revestimiento-7mm",
+        name: "Revestimiento 7 mm",
+        shortName: "Revestimiento 7 mm",
+        widthMeters: 0.2,
+        heightMeters: 6,
+        thickness: "7 mm",
+        areaDecimals: 2,
+        pricePerSheet: 824,
+      },
+    ],
   },
-  "7mm": {
-    name: "Revestimiento 7 mm",
-    shortName: "7 mm",
-    widthMeters: 0.2,
-    heightMeters: 6,
-    areaDecimals: 2,
-    pricePerSheet: 824,
+  cieloRaso: {
+    label: "Cielo raso",
+    selectorTitle: "Elegí qué cielo raso estás vendiendo",
+    products: [
+      {
+        key: "cielo-raso-blanco-liviano-4m",
+        name: "Cielo raso blanco liviano 4 m",
+        shortName: "Blanco liviano 4 m",
+        widthMeters: 0.2,
+        heightMeters: 4,
+        thickness: "7 mm",
+        areaDecimals: 2,
+        pricePerSheet: 130,
+      },
+      {
+        key: "cielo-raso-blanco-liviano-6m",
+        name: "Cielo raso blanco liviano 6 m",
+        shortName: "Blanco liviano 6 m",
+        widthMeters: 0.2,
+        heightMeters: 6,
+        thickness: "7 mm",
+        areaDecimals: 2,
+        pricePerSheet: 195,
+      },
+      {
+        key: "cielo-raso-blanco-reforzado",
+        name: "Cielo raso blanco reforzado",
+        shortName: "Blanco reforzado",
+        widthMeters: 0.2,
+        heightMeters: 5.95,
+        thickness: "10 mm",
+        areaDecimals: 2,
+        pricePerSheet: 380,
+      },
+      {
+        key: "cielo-raso-natural",
+        name: "Cielo raso natural 6 m",
+        shortName: "Natural 6 m",
+        widthMeters: 0.2,
+        heightMeters: 6,
+        thickness: "7 mm",
+        areaDecimals: 2,
+        pricePerSheet: 301,
+      },
+      {
+        key: "cielo-raso-cerejeira",
+        name: "Cielo raso cerejeira 6 m",
+        shortName: "Cerejeira 6 m",
+        widthMeters: 0.2,
+        heightMeters: 6,
+        thickness: "7 mm",
+        areaDecimals: 2,
+        pricePerSheet: 301,
+      },
+    ],
   },
 };
 
 const calculatorForm = document.querySelector("#calculator-form");
-const productInputs = document.querySelectorAll('input[name="product"]');
+const familyInputs = document.querySelectorAll('input[name="productFamily"]');
 const calculationTypeInputs = document.querySelectorAll('input[name="calculationType"]');
+const productGrid = document.querySelector("#product-grid");
+const productSelectorTitle = document.querySelector("#product-selector-title");
 const squareMetersFields = document.querySelector("#square-meters-fields");
 const wallFields = document.querySelector("#wall-fields");
 const selectedName = document.querySelector("#selected-name");
 const selectedSize = document.querySelector("#selected-size");
+const selectedThickness = document.querySelector("#selected-thickness");
 const selectedArea = document.querySelector("#selected-area");
 const selectedPrice = document.querySelector("#selected-price");
 const formulaDetail = document.querySelector("#formula-detail");
 const calculatorResult = document.querySelector("#calculator-result");
 
-let activeProductKey = "10mm";
+let activeFamilyKey = "revestimiento";
+let activeProductKey = "revestimiento-10mm";
 let activeCalculationType = "squareMeters";
+
+function getProductsForActiveFamily() {
+  return PRODUCT_FAMILIES[activeFamilyKey].products;
+}
+
+function getActiveProduct() {
+  return getProductsForActiveFamily().find((product) => product.key === activeProductKey);
+}
 
 function getProductArea(product) {
   return product.widthMeters * product.heightMeters;
@@ -50,10 +128,6 @@ function formatCurrency(value) {
   }).format(value)}`;
 }
 
-function getActiveProduct() {
-  return PRODUCTS[activeProductKey];
-}
-
 function calculateSheets(area, product) {
   return Math.ceil(area / getProductArea(product));
 }
@@ -64,9 +138,10 @@ function updateHeader() {
 
   selectedName.textContent = product.shortName;
   selectedSize.textContent = `${formatNumber(product.heightMeters)} m x ${formatNumber(product.widthMeters)} m`;
+  selectedThickness.textContent = product.thickness;
   selectedArea.textContent = `${formatNumber(area, product.areaDecimals)} m²`;
   selectedPrice.textContent = formatCurrency(product.pricePerSheet);
-  formulaDetail.textContent = `Con el ${product.name.toLowerCase()}, cada hoja cubre ${formatNumber(area, product.areaDecimals)} m² y cuesta ${formatCurrency(product.pricePerSheet)}.`;
+  formulaDetail.textContent = `Con ${product.name.toLowerCase()}, cada hoja cubre ${formatNumber(area, product.areaDecimals)} m² y cuesta ${formatCurrency(product.pricePerSheet)}.`;
 }
 
 function updateCalculationVisibility() {
@@ -102,6 +177,29 @@ function resetResult() {
   renderError("Elegí el tipo de cálculo y completá los datos para obtener el resultado.");
 }
 
+function renderProductOptions() {
+  const family = PRODUCT_FAMILIES[activeFamilyKey];
+  const productsMarkup = family.products.map((product) => {
+    const area = getProductArea(product);
+
+    return `
+      <label class="product-option">
+        <input type="radio" name="product" value="${product.key}" ${product.key === activeProductKey ? "checked" : ""}>
+        <span class="product-card">
+          <strong>${product.name}</strong>
+          <span>Medida: ${formatNumber(product.heightMeters)} m x ${formatNumber(product.widthMeters)} m</span>
+          <span>Espesor: ${product.thickness}</span>
+          <span>Cobertura: ${formatNumber(area, product.areaDecimals)} m² por hoja</span>
+          <span>Precio: ${formatCurrency(product.pricePerSheet)} por hoja</span>
+        </span>
+      </label>
+    `;
+  }).join("");
+
+  productSelectorTitle.textContent = family.selectorTitle;
+  productGrid.innerHTML = productsMarkup;
+}
+
 function getAreaFromForm(formData) {
   if (activeCalculationType === "squareMeters") {
     const squareMeters = Number(formData.get("squareMeters"));
@@ -123,12 +221,24 @@ function getAreaFromForm(formData) {
   return wallWidth * wallHeight;
 }
 
-productInputs.forEach((input) => {
+familyInputs.forEach((input) => {
   input.addEventListener("change", () => {
-    activeProductKey = input.value;
+    activeFamilyKey = input.value;
+    activeProductKey = getProductsForActiveFamily()[0].key;
+    renderProductOptions();
     updateHeader();
     resetResult();
   });
+});
+
+productGrid.addEventListener("change", (event) => {
+  if (event.target.name !== "product") {
+    return;
+  }
+
+  activeProductKey = event.target.value;
+  updateHeader();
+  resetResult();
 });
 
 calculationTypeInputs.forEach((input) => {
@@ -168,6 +278,7 @@ calculatorForm.addEventListener("submit", (event) => {
   });
 });
 
+renderProductOptions();
 updateHeader();
 updateCalculationVisibility();
 resetResult();

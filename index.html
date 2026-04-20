@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calculadora de Revestimiento</title>
+  <title>Calculadora de Revestimiento y Cielo Raso</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,17 +11,18 @@
     <section class="storefront">
       <div class="storefront-copy">
         <p class="eyebrow">Mostrador de ventas</p>
-        <h1>Calculadora de revestimiento para ventas</h1>
+        <h1>Calculadora de revestimiento y cielo raso</h1>
         <p class="hero-text">
-          Elegí el tipo de revestimiento y calculá al instante cuántas hojas vender
+          Elegí la familia del producto y calculá al instante cuántas hojas vender
           según metros cuadrados o dimensiones de la pared.
         </p>
       </div>
 
       <aside class="storefront-panel">
-        <p class="panel-label">Revestimiento seleccionado</p>
-        <h2 id="selected-name">10 mm</h2>
+        <p class="panel-label">Producto seleccionado</p>
+        <h2 id="selected-name">Revestimiento 10 mm</h2>
         <p id="selected-size" class="panel-size">2.70 m x 0.25 m</p>
+        <p class="panel-thickness">Espesor: <strong id="selected-thickness">10 mm</strong></p>
         <p class="panel-area">Cobertura por hoja: <strong id="selected-area">0.675 m²</strong></p>
         <p class="panel-price">Precio por hoja: <strong id="selected-price">$ 572</strong></p>
       </aside>
@@ -29,31 +30,29 @@
 
     <section class="selector card">
       <div class="section-heading">
-        <p class="section-kicker">Cambio de revestimiento</p>
-        <h2>Elegí qué producto estás vendiendo</h2>
+        <p class="section-kicker">Cambio de familia</p>
+        <h2>Elegí qué estás vendiendo</h2>
       </div>
 
-      <div class="product-grid">
-        <label class="product-option">
-          <input type="radio" name="product" value="10mm" checked>
-          <span class="product-card">
-            <strong>Revestimiento 10 mm</strong>
-            <span>Medida: 2.70 m x 0.25 m</span>
-            <span>Cobertura: 0.675 m² por hoja</span>
-            <span>Precio: $ 572 por hoja</span>
-          </span>
+      <div class="family-switch">
+        <label class="switch-option">
+          <input type="radio" name="productFamily" value="revestimiento" checked>
+          <span>Revestimiento</span>
         </label>
-
-        <label class="product-option">
-          <input type="radio" name="product" value="7mm">
-          <span class="product-card">
-            <strong>Revestimiento 7 mm</strong>
-            <span>Medida: 6.00 m x 0.20 m</span>
-            <span>Cobertura: 1.20 m² por hoja</span>
-            <span>Precio: $ 824 por hoja</span>
-          </span>
+        <label class="switch-option">
+          <input type="radio" name="productFamily" value="cieloRaso">
+          <span>Cielo raso</span>
         </label>
       </div>
+    </section>
+
+    <section class="selector card">
+      <div class="section-heading">
+        <p class="section-kicker">Cambio de producto</p>
+        <h2 id="product-selector-title">Elegí qué producto estás vendiendo</h2>
+      </div>
+
+      <div id="product-grid" class="product-grid"></div>
     </section>
 
     <section class="card calculator-card">
