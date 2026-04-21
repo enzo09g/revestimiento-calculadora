@@ -188,6 +188,9 @@ h2 {
 .switch-option input,
 .product-option input {
   position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
   opacity: 0;
   pointer-events: none;
 }
