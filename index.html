@@ -4,110 +4,174 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calculadora de Revestimiento y Cielo Raso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="page">
-    <section class="storefront">
-      <div class="storefront-copy">
-        <p class="eyebrow">Mostrador de ventas</p>
-        <h1>Calculadora de revestimiento y cielo raso</h1>
-        <p class="hero-text">
-          Elegí la familia del producto y calculá al instante cuántas hojas vender
-          según metros cuadrados o dimensiones de la pared.
-        </p>
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <span>Calculadora</span>
+      <span>/</span>
+      <span>Pisos y revestimientos</span>
+      <span>/</span>
+      <span>Venta estimada</span>
+    </nav>
+
+    <section class="catalog-layout">
+      <div class="product-area">
+        <section class="product-hero panel">
+          <div class="product-copy">
+            <p class="eyebrow">Calculadora comercial</p>
+            <h1>Revestimiento y cielo raso</h1>
+            <p class="intro">
+              Elegi la familia, selecciona el producto y calcula rapidamente cuantas hojas vender segun metros cuadrados o dimensiones.
+            </p>
+          </div>
+
+          <div class="product-sheet">
+            <p class="sheet-label">Producto activo</p>
+            <h2 id="selected-name">Revestimiento 10 mm</h2>
+            <p id="selected-size" class="sheet-size">2.70 m x 0.25 m</p>
+
+            <dl class="spec-list">
+              <div>
+                <dt>Espesor</dt>
+                <dd id="selected-thickness">10 mm</dd>
+              </div>
+              <div>
+                <dt>Cobertura por hoja</dt>
+                <dd id="selected-area">0.675 m²</dd>
+              </div>
+              <div>
+                <dt>Precio por hoja</dt>
+                <dd id="selected-price">$ 572</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <p class="section-kicker">Categoria</p>
+            <h2>Elegi que estas vendiendo</h2>
+          </div>
+
+          <div class="family-switch">
+            <label class="switch-option">
+              <input type="radio" name="productFamily" value="revestimiento" checked>
+              <span>Revestimiento</span>
+            </label>
+            <label class="switch-option">
+              <input type="radio" name="productFamily" value="cieloRaso">
+              <span>Cielo raso</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <p class="section-kicker">Producto</p>
+            <h2 id="product-selector-title">Elegi que producto estas vendiendo</h2>
+          </div>
+
+          <div id="product-grid" class="product-grid"></div>
+        </section>
       </div>
 
-      <aside class="storefront-panel">
-        <p class="panel-label">Producto seleccionado</p>
-        <h2 id="selected-name">Revestimiento 10 mm</h2>
-        <p id="selected-size" class="panel-size">2.70 m x 0.25 m</p>
-        <p class="panel-thickness">Espesor: <strong id="selected-thickness">10 mm</strong></p>
-        <p class="panel-area">Cobertura por hoja: <strong id="selected-area">0.675 m²</strong></p>
-        <p class="panel-price">Precio por hoja: <strong id="selected-price">$ 572</strong></p>
+      <aside class="buybox panel">
+        <div class="buybox-head">
+          <p class="buybox-kicker">Calculadora</p>
+          <h2>Calcula cuantas hojas necesitas</h2>
+        </div>
+
+        <div class="calculation-switch">
+          <label class="switch-option">
+            <input type="radio" name="calculationType" value="squareMeters" checked>
+            <span>Por m²</span>
+          </label>
+          <label class="switch-option">
+            <input type="radio" name="calculationType" value="wallDimensions">
+            <span>Por pared</span>
+          </label>
+        </div>
+
+        <form id="calculator-form" class="form">
+          <div id="square-meters-fields" class="calculation-fields">
+            <label for="square-meters">M² de la superficie a cubrir</label>
+            <input id="square-meters" name="squareMeters" type="number" min="0" step="0.01" placeholder="Ej: 12.5">
+          </div>
+
+          <div id="wall-fields" class="calculation-fields is-hidden">
+            <label for="wall-width">Ancho de la pared (m)</label>
+            <input id="wall-width" name="wallWidth" type="number" min="0" step="0.01" placeholder="Ej: 3.2">
+
+            <label for="wall-height">Alto de la pared (m)</label>
+            <input id="wall-height" name="wallHeight" type="number" min="0" step="0.01" placeholder="Ej: 2.4">
+          </div>
+
+          <button type="submit">Calcular hojas y precio</button>
+        </form>
+
+        <p class="helper-note">Esta calculadora estima la cantidad aproximada que necesitas vender.</p>
+
+        <div id="calculator-result" class="result" aria-live="polite">
+          <p class="result-label">Cantidad a vender</p>
+          <p class="result-big">0 hojas</p>
+          <p class="result-price">$ 0</p>
+          <p class="result-detail">Elegi el tipo de calculo y completa los datos para obtener el resultado.</p>
+        </div>
       </aside>
     </section>
 
-    <section class="selector card">
+    <section class="panel visualization-panel">
       <div class="section-heading">
-        <p class="section-kicker">Cambio de familia</p>
-        <h2>Elegí qué estás vendiendo</h2>
+        <p class="section-kicker">Visualizacion</p>
+        <h2>Como se verian las hojas</h2>
       </div>
 
-      <div class="family-switch">
-        <label class="switch-option">
-          <input type="radio" name="productFamily" value="revestimiento" checked>
-          <span>Revestimiento</span>
-        </label>
-        <label class="switch-option">
-          <input type="radio" name="productFamily" value="cieloRaso">
-          <span>Cielo raso</span>
-        </label>
-      </div>
-    </section>
-
-    <section class="selector card">
-      <div class="section-heading">
-        <p class="section-kicker">Cambio de producto</p>
-        <h2 id="product-selector-title">Elegí qué producto estás vendiendo</h2>
-      </div>
-
-      <div id="product-grid" class="product-grid"></div>
-    </section>
-
-    <section class="card calculator-card">
-      <div class="section-heading">
-        <p class="section-kicker">Tipo de cálculo</p>
-        <h2>Elegí cómo querés calcular</h2>
-      </div>
-
-      <div class="calculation-switch">
-        <label class="switch-option">
-          <input type="radio" name="calculationType" value="squareMeters" checked>
-          <span>Cálculo por metro cuadrado</span>
-        </label>
-        <label class="switch-option">
-          <input type="radio" name="calculationType" value="wallDimensions">
-          <span>Cálculo por dimensiones de la pared</span>
-        </label>
-      </div>
-
-      <form id="calculator-form" class="form">
-        <div id="square-meters-fields" class="calculation-fields">
-          <label for="square-meters">Metros cuadrados solicitados</label>
-          <input id="square-meters" name="squareMeters" type="number" min="0" step="0.01" placeholder="Ej: 12.5">
+      <div class="visualization-shell">
+        <div class="visualization-head">
+          <div>
+            <p class="visual-label">Superficie</p>
+            <strong id="visual-surface-label">Esperando calculo</strong>
+          </div>
+          <div>
+            <p class="visual-label">Cobertura total</p>
+            <strong id="visual-coverage-label">0 m²</strong>
+          </div>
         </div>
 
-        <div id="wall-fields" class="calculation-fields is-hidden">
-          <label for="wall-width">Ancho de la pared (m)</label>
-          <input id="wall-width" name="wallWidth" type="number" min="0" step="0.01" placeholder="Ej: 3.2">
-
-          <label for="wall-height">Alto de la pared (m)</label>
-          <input id="wall-height" name="wallHeight" type="number" min="0" step="0.01" placeholder="Ej: 2.4">
+        <div class="visualization-stage-wrap">
+          <div id="visualization-stage" class="visualization-stage" aria-label="Vista esquematica de hojas"></div>
+          <div id="cut-summary" class="cut-summary">Calcula para ver como se colocan y cortan las hojas.</div>
+          <div class="visualization-legend">
+            <span><i class="legend-surface"></i>Pared o superficie</span>
+            <span><i class="legend-sheet"></i>Hoja colocada</span>
+            <span><i class="legend-overflow"></i>Remate colocado</span>
+          </div>
         </div>
 
-        <button type="submit">Calcular hojas y precio</button>
-      </form>
-
-      <div id="calculator-result" class="result" aria-live="polite">
-        <p class="result-label">Cantidad a vender</p>
-        <p class="result-big">0 hojas</p>
-        <p class="result-price">$ 0</p>
-        <p class="result-detail">Elegí el tipo de cálculo y completá los datos para obtener el resultado.</p>
+        <div class="coverage-block">
+          <div class="coverage-copy">
+            <p class="visual-label">Cobertura y sobrante</p>
+            <strong id="coverage-summary">Calcula para ver la diferencia entre pedido y cobertura.</strong>
+          </div>
+          <div class="coverage-meter" aria-hidden="true">
+            <div id="coverage-used" class="coverage-used"></div>
+            <div id="coverage-extra" class="coverage-extra"></div>
+          </div>
+        </div>
       </div>
-    </section>
 
-    <section class="info card">
-      <div class="section-heading">
-        <p class="section-kicker">Referencia rápida</p>
-        <h2>Cómo se calcula</h2>
-      </div>
-      <p>La fórmula es: <strong>hojas = metros cuadrados / cobertura por hoja</strong>.</p>
-      <p>La cantidad final siempre se redondea hacia arriba porque para venta necesitás cubrir toda la superficie.</p>
-      <p id="formula-detail">Con el revestimiento 10 mm, cada hoja cubre 0.675 m² y cuesta $ 572.</p>
+      <p class="info-copy">La formula base es <strong>hojas = metros cuadrados / cobertura por hoja</strong>.</p>
+      <p class="info-copy">La cantidad final se redondea hacia arriba para cubrir toda la superficie necesaria en la venta.</p>
+      <p id="formula-detail" class="info-copy">Con el revestimiento 10 mm, cada hoja cubre 0.675 m² y cuesta $ 572.</p>
     </section>
   </main>
 
+  <script src="placement-engine.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 const PRODUCT_FAMILIES = {
   revestimiento: {
     label: "Revestimiento",
-    selectorTitle: "Elegí qué revestimiento estás vendiendo",
+    selectorTitle: "Elegi que revestimiento estas vendiendo",
     products: [
       {
         key: "revestimiento-10mm",
@@ -27,7 +27,7 @@ const PRODUCT_FAMILIES = {
   },
   cieloRaso: {
     label: "Cielo raso",
-    selectorTitle: "Elegí qué cielo raso estás vendiendo",
+    selectorTitle: "Elegi que cielo raso estas vendiendo",
     products: [
       {
         key: "cielo-raso-blanco-liviano-4m",
@@ -97,6 +97,13 @@ const selectedArea = document.querySelector("#selected-area");
 const selectedPrice = document.querySelector("#selected-price");
 const formulaDetail = document.querySelector("#formula-detail");
 const calculatorResult = document.querySelector("#calculator-result");
+const visualizationStage = document.querySelector("#visualization-stage");
+const visualSurfaceLabel = document.querySelector("#visual-surface-label");
+const visualCoverageLabel = document.querySelector("#visual-coverage-label");
+const coverageSummary = document.querySelector("#coverage-summary");
+const coverageUsed = document.querySelector("#coverage-used");
+const coverageExtra = document.querySelector("#coverage-extra");
+const cutSummary = document.querySelector("#cut-summary");
 
 let activeFamilyKey = "revestimiento";
 let activeProductKey = "revestimiento-10mm";
@@ -128,8 +135,252 @@ function formatCurrency(value) {
   }).format(value)}`;
 }
 
-function calculateSheets(area, product) {
-  return Math.ceil(area / getProductArea(product));
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function calculateSheetsByArea(area, product) {
+  return PlacementEngine.calculateSheetsByArea(area, product);
+}
+
+function getVisualizationDimensions(area) {
+  const side = Math.sqrt(area);
+
+  return {
+    widthMeters: side,
+    heightMeters: side,
+    label: `${formatNumber(side)} m x ${formatNumber(side)} m aprox.`,
+  };
+}
+
+function computeWallPlacement(product, wallWidth, wallHeight) {
+  return PlacementEngine.computeWallPlacement(product, wallWidth, wallHeight);
+}
+
+function renderVisualizationPlaceholder(message) {
+  visualizationStage.style.height = "";
+  visualizationStage.innerHTML = `<div class="visualization-placeholder">${message}</div>`;
+  visualSurfaceLabel.textContent = "Esperando calculo";
+  visualCoverageLabel.textContent = "0 m²";
+  cutSummary.textContent = "Calcula para ver como se colocan y cortan las hojas.";
+  coverageSummary.textContent = "Calcula para ver la diferencia entre pedido y cobertura.";
+  coverageUsed.style.width = "0%";
+  coverageExtra.style.width = "0%";
+}
+
+function setVisualizationStageHeight(payload) {
+  const stageWidth = visualizationStage.clientWidth || 520;
+  let nextHeight = 460;
+
+  if (payload.placement) {
+    const aspectRatio = payload.placement.wallWidth / payload.placement.wallHeight;
+    const targetSurfaceWidth = Math.max(stageWidth - 88, 240);
+    const targetSurfaceHeight = targetSurfaceWidth / Math.max(aspectRatio, 0.2);
+    const reserveTop = 52;
+    const reserveBottom = payload.placement.leftoverPieces > 0 ? 96 : 48;
+    const preferredMaxHeight = aspectRatio <= 1.2 ? 560 : 660;
+    nextHeight = clamp(targetSurfaceHeight + reserveTop + reserveBottom, 360, preferredMaxHeight);
+  } else if (payload.area && payload.product) {
+    const { widthMeters, heightMeters } = getVisualizationDimensions(payload.area);
+    const aspectRatio = widthMeters / heightMeters;
+    const targetSurfaceWidth = Math.max(stageWidth - 88, 240);
+    const targetSurfaceHeight = targetSurfaceWidth / Math.max(aspectRatio, 0.5);
+    nextHeight = clamp(targetSurfaceHeight + 96, 360, 560);
+  }
+
+  visualizationStage.style.height = `${Math.round(nextHeight)}px`;
+}
+
+function renderPlacementVisualization(placement, product, area, totalCoveredArea, overflowArea) {
+  const stageWidth = visualizationStage.clientWidth || 520;
+  const stageHeight = visualizationStage.clientHeight || 300;
+  const paddingX = placement.columnWidths.length > 18 ? 28 : 44;
+  const topReserve = 52;
+  const bottomReserve = placement.leftoverPieces > 0 ? 96 : 48;
+  const usableHeight = Math.max(stageHeight - topReserve - bottomReserve, 140);
+  const scale = Math.min((stageWidth - (paddingX * 2)) / placement.wallWidth, usableHeight / placement.wallHeight);
+  const surfaceWidth = Math.max(placement.wallWidth * scale, 48);
+  const surfaceHeight = Math.max(placement.wallHeight * scale, 48);
+  const surfaceLeft = (stageWidth - surfaceWidth) / 2;
+  const surfaceTop = topReserve + ((usableHeight - surfaceHeight) / 2);
+  const stageMarkup = [];
+
+  stageMarkup.push(`
+    <div
+      class="visualization-surface"
+      style="left:${surfaceLeft}px; top:${surfaceTop}px; width:${surfaceWidth}px; height:${surfaceHeight}px;"
+      title="Superficie solicitada"
+    ></div>
+    <div
+      class="dimension-line horizontal"
+      style="left:${surfaceLeft}px; top:${surfaceTop - 18}px; width:${surfaceWidth}px;"
+    ></div>
+    <div
+      class="dimension-label"
+      style="left:${surfaceLeft + (surfaceWidth / 2) - 28}px; top:${surfaceTop - 34}px;"
+    >${formatNumber(placement.wallWidth)} m</div>
+    <div
+      class="dimension-line vertical"
+      style="left:${surfaceLeft - 18}px; top:${surfaceTop}px; height:${surfaceHeight}px;"
+    ></div>
+    <div
+      class="dimension-label"
+      style="left:${surfaceLeft - 42}px; top:${surfaceTop + (surfaceHeight / 2) - 10}px;"
+    >${formatNumber(placement.wallHeight)} m</div>
+  `);
+
+  let pieceCounter = 1;
+  let accumulatedLeft = surfaceLeft;
+
+  placement.columnWidths.forEach((columnWidth, columnIndex) => {
+    const placedWidth = Math.max(columnWidth * scale, 8);
+    let accumulatedTop = surfaceTop;
+
+    placement.rowHeights.forEach((rowHeight, rowIndex) => {
+      const placedHeight = Math.max(rowHeight * scale, 12);
+      const showPieceNumber = placement.requiredPieces <= 24 && placedWidth >= 24 && placedHeight >= 20;
+      const isRemainderPiece = placement.mode === "stacked-with-top-cut" && rowIndex === placement.rowHeights.length - 1;
+
+      stageMarkup.push(`
+        <div
+          class="visualization-sheet${isRemainderPiece ? " visualization-remate" : ""}"
+          style="left:${accumulatedLeft}px; top:${accumulatedTop}px; width:${placedWidth}px; height:${placedHeight}px;"
+          title="${isRemainderPiece ? "Remate colocado" : "Pieza"} ${pieceCounter}"
+        >
+          ${showPieceNumber ? `<span>${pieceCounter}</span>` : ""}
+        </div>
+      `);
+
+      accumulatedTop += placedHeight;
+      pieceCounter += 1;
+    });
+
+    accumulatedLeft += placedWidth;
+  });
+
+  visualizationStage.innerHTML = stageMarkup.join("");
+  visualSurfaceLabel.textContent = `${formatNumber(area)} m² · ${formatNumber(placement.wallWidth)} m x ${formatNumber(placement.wallHeight)} m`;
+  visualCoverageLabel.textContent = `${formatNumber(totalCoveredArea)} m²`;
+
+  const usedPercent = totalCoveredArea > 0 ? clamp((area / totalCoveredArea) * 100, 0, 100) : 0;
+  const extraPercent = totalCoveredArea > 0 ? 100 - usedPercent : 0;
+
+  coverageSummary.textContent = `Pedis ${formatNumber(area)} m², las ${formatNumber(placement.sheetsRequired, 0)} hojas cubren ${formatNumber(totalCoveredArea)} m² y dejan ${formatNumber(overflowArea)} m² de excedente aproximado.`;
+  coverageUsed.style.width = `${usedPercent}%`;
+  coverageExtra.style.width = `${extraPercent}%`;
+
+  if (placement.mode === "cut-to-height") {
+    const orientationText = placement.rotated ? " girada" : "";
+    const lateralText = placement.cutWidthOnLastColumn > 0
+      ? ` Para completar el ancho, usas ${formatNumber(placement.widthRemainderSheets, 0)} hoja(s) cortada(s) en tiras de ${formatNumber(placement.columnWidths[placement.columnWidths.length - 1])} m.`
+      : "";
+
+    cutSummary.textContent = `Necesitas ${placement.requiredPieces} tiras de ${formatNumber(placement.orientedWidth)} x ${formatNumber(placement.wallHeight)} m. Cada hoja${orientationText} de ${formatNumber(placement.orientedWidth)} x ${formatNumber(placement.orientedHeight)} m se corta a ${formatNumber(placement.wallHeight)} m y rinde ${placement.piecesPerSheet} tira(s). Con ${formatNumber(placement.sheetsRequired, 0)} hojas cubris la pared y sobra ${formatNumber(placement.leftoverPieces, 0)} tira(s).${lateralText}`;
+  } else if (placement.mode === "stacked-with-top-cut") {
+    const orientationText = placement.rotated ? " con la hoja girada" : "";
+    const usageParts = [];
+
+    if (placement.fullBodySheets > 0) {
+      usageParts.push(`${formatNumber(placement.fullBodySheets, 0)} hoja(s) para los paños completos`);
+    }
+
+    if (placement.widthRemainderSheets > 0) {
+      usageParts.push(`${formatNumber(placement.widthRemainderSheets, 0)} hoja(s) para completar el ancho`);
+    }
+
+    if (placement.heightRemainderSheets > 0) {
+      usageParts.push(`${formatNumber(placement.heightRemainderSheets, 0)} hoja(s) para los remates de alto de ${formatNumber(placement.rowHeights[placement.rowHeights.length - 1])} m`);
+    }
+
+    if (placement.cornerRemainderSheets > 0) {
+      usageParts.push(`${formatNumber(placement.cornerRemainderSheets, 0)} hoja(s) para la esquina de remate`);
+    }
+
+    cutSummary.textContent = `Necesitas ${placement.columnWidths.length} columnas${orientationText}. Usas ${usageParts.join(", ")}. En total necesitas ${formatNumber(placement.sheetsRequired, 0)} hojas.`;
+  } else {
+    const orientationText = placement.rotated ? " con la hoja girada" : "";
+    const widthRemainderText = placement.widthRemainderSheets > 0
+      ? ` y ${formatNumber(placement.widthRemainderSheets, 0)} hoja(s) cortada(s) para completar el ancho`
+      : "";
+
+    cutSummary.textContent = `Necesitas ${placement.columnWidths.length} columnas y ${placement.rowHeights.length} tramos por columna${orientationText}. Usas ${formatNumber(placement.fullBodySheets, 0)} hoja(s) completas${widthRemainderText}. En total necesitas ${formatNumber(placement.sheetsRequired, 0)} hojas.`;
+  }
+}
+
+function renderAreaVisualization(area, sheets, totalCoveredArea, overflowArea, product) {
+  const stageWidth = visualizationStage.clientWidth || 520;
+  const stageHeight = visualizationStage.clientHeight || 300;
+  const { widthMeters, heightMeters, label } = getVisualizationDimensions(area);
+  const paddingX = 44;
+  const paddingY = 34;
+  const scale = Math.min((stageWidth - (paddingX * 2)) / widthMeters, (stageHeight - (paddingY * 2)) / heightMeters);
+  const surfaceWidth = Math.max(widthMeters * scale, 48);
+  const surfaceHeight = Math.max(heightMeters * scale, 48);
+  const surfaceLeft = (stageWidth - surfaceWidth) / 2;
+  const surfaceTop = (stageHeight - surfaceHeight) / 2;
+  const stageMarkup = [];
+
+  stageMarkup.push(`
+    <div
+      class="visualization-surface area-surface"
+      style="left:${surfaceLeft}px; top:${surfaceTop}px; width:${surfaceWidth}px; height:${surfaceHeight}px;"
+      title="Superficie solicitada"
+    >
+      <div class="area-coverage-fill"></div>
+      <span class="area-sheet-count">${formatNumber(sheets, 0)} hojas estimadas</span>
+    </div>
+    <div
+      class="dimension-line horizontal"
+      style="left:${surfaceLeft}px; top:${surfaceTop - 18}px; width:${surfaceWidth}px;"
+    ></div>
+    <div
+      class="dimension-label"
+      style="left:${surfaceLeft + (surfaceWidth / 2) - 28}px; top:${surfaceTop - 34}px;"
+    >${formatNumber(widthMeters)} m</div>
+    <div
+      class="dimension-line vertical"
+      style="left:${surfaceLeft - 18}px; top:${surfaceTop}px; height:${surfaceHeight}px;"
+    ></div>
+    <div
+      class="dimension-label"
+      style="left:${surfaceLeft - 42}px; top:${surfaceTop + (surfaceHeight / 2) - 10}px;"
+    >${formatNumber(heightMeters)} m</div>
+  `);
+
+  visualizationStage.innerHTML = stageMarkup.join("");
+  visualSurfaceLabel.textContent = `${formatNumber(area)} m² · ${label}`;
+  visualCoverageLabel.textContent = `${formatNumber(totalCoveredArea)} m²`;
+
+  const usedPercent = totalCoveredArea > 0 ? clamp((area / totalCoveredArea) * 100, 0, 100) : 0;
+  const extraPercent = totalCoveredArea > 0 ? 100 - usedPercent : 0;
+
+  cutSummary.textContent = "En calculo por m² la colocacion es una estimacion visual, no un plano exacto de corte.";
+  coverageSummary.textContent = `Pedis ${formatNumber(area)} m², las ${formatNumber(sheets, 0)} hojas cubren ${formatNumber(totalCoveredArea)} m² y dejan ${formatNumber(overflowArea)} m² de excedente aproximado.`;
+  coverageUsed.style.width = `${usedPercent}%`;
+  coverageExtra.style.width = `${extraPercent}%`;
+}
+
+function renderVisualization(payload) {
+  setVisualizationStageHeight(payload);
+
+  if (payload.placement) {
+    renderPlacementVisualization(
+      payload.placement,
+      payload.product,
+      payload.area,
+      payload.totalCoveredArea,
+      payload.overflowArea,
+    );
+    return;
+  }
+
+  renderAreaVisualization(
+    payload.area,
+    payload.sheets,
+    payload.totalCoveredArea,
+    payload.overflowArea,
+    payload.product,
+  );
 }
 
 function updateHeader() {
@@ -159,7 +410,7 @@ function renderResult({ sheets, area, exactSheets, totalPrice, productName }) {
     <p class="result-detail">
       Producto: <span class="result-strong">${productName}</span><br>
       Superficie calculada: <span class="result-strong">${formatNumber(area)} m²</span><br>
-      Cálculo exacto: ${formatNumber(exactSheets)} hojas. Se redondea siempre para arriba.
+      Calculo exacto: ${formatNumber(exactSheets)} hojas. Se redondea siempre para arriba.
     </p>
   `;
 }
@@ -171,10 +422,12 @@ function renderError(message) {
     <p class="result-price">$ 0</p>
     <p class="result-detail">${message}</p>
   `;
+
+  renderVisualizationPlaceholder(message);
 }
 
 function resetResult() {
-  renderError("Elegí el tipo de cálculo y completá los datos para obtener el resultado.");
+  renderError("Elegi el tipo de calculo y completa los datos para obtener el resultado.");
 }
 
 function renderProductOptions() {
@@ -203,7 +456,6 @@ function renderProductOptions() {
 function getAreaFromForm(formData) {
   if (activeCalculationType === "squareMeters") {
     const squareMeters = Number(formData.get("squareMeters"));
-
     if (!squareMeters || squareMeters <= 0) {
       return null;
     }
@@ -257,16 +509,30 @@ calculatorForm.addEventListener("submit", (event) => {
 
   if (!area) {
     const message = activeCalculationType === "squareMeters"
-      ? "Ingresá un valor mayor a 0 m²."
-      : "Ingresá ancho y alto mayores a 0.";
+      ? "Ingresa un valor mayor a 0 m²."
+      : "Ingresa ancho y alto mayores a 0.";
 
     renderError(message);
     return;
   }
 
   const product = getActiveProduct();
-  const exactSheets = area / getProductArea(product);
-  const sheets = calculateSheets(area, product);
+  let exactSheets = area / getProductArea(product);
+  let sheets = calculateSheetsByArea(area, product);
+  let totalCoveredArea = sheets * getProductArea(product);
+  let overflowArea = Math.max(totalCoveredArea - area, 0);
+  let placement = null;
+
+  if (activeCalculationType === "wallDimensions") {
+    const wallWidth = Number(formData.get("wallWidth"));
+    const wallHeight = Number(formData.get("wallHeight"));
+    placement = computeWallPlacement(product, wallWidth, wallHeight);
+    exactSheets = area / getProductArea(product);
+    sheets = placement.sheetsRequired;
+    totalCoveredArea = placement.totalCoveredArea;
+    overflowArea = Math.max(totalCoveredArea - area, 0);
+  }
+
   const totalPrice = sheets * product.pricePerSheet;
 
   renderResult({
@@ -275,6 +541,15 @@ calculatorForm.addEventListener("submit", (event) => {
     exactSheets,
     totalPrice,
     productName: product.name,
+  });
+
+  renderVisualization({
+    area,
+    sheets,
+    totalCoveredArea,
+    overflowArea,
+    product,
+    placement,
   });
 });
 
