@@ -272,38 +272,58 @@ function renderPlacementVisualization(placement, product, area, totalCoveredArea
   if (placement.mode === "cut-to-height") {
     const orientationText = placement.rotated ? " girada" : "";
     const lateralText = placement.cutWidthOnLastColumn > 0
-      ? ` Para completar el ancho, usas ${formatNumber(placement.widthRemainderSheets, 0)} hoja(s) cortada(s) en tiras de ${formatNumber(placement.columnWidths[placement.columnWidths.length - 1])} m.`
+      ? `<li><strong>${formatNumber(placement.widthRemainderSheets, 0)} hoja(s)</strong> cortada(s) para completar la franja lateral de ${formatNumber(placement.columnWidths[placement.columnWidths.length - 1])} m.</li>`
       : "";
 
-    cutSummary.textContent = `Necesitas ${placement.requiredPieces} tiras de ${formatNumber(placement.orientedWidth)} x ${formatNumber(placement.wallHeight)} m. Cada hoja${orientationText} de ${formatNumber(placement.orientedWidth)} x ${formatNumber(placement.orientedHeight)} m se corta a ${formatNumber(placement.wallHeight)} m y rinde ${placement.piecesPerSheet} tira(s). Con ${formatNumber(placement.sheetsRequired, 0)} hojas cubris la pared y sobra ${formatNumber(placement.leftoverPieces, 0)} tira(s).${lateralText}`;
+    cutSummary.innerHTML = `
+      <p><strong>Esquema de colocacion:</strong> ${placement.requiredPieces} tiras de ${formatNumber(placement.orientedWidth)} x ${formatNumber(placement.wallHeight)} m.</p>
+      <ul>
+        <li>Cada hoja${orientationText} de ${formatNumber(placement.orientedWidth)} x ${formatNumber(placement.orientedHeight)} m rinde <strong>${placement.piecesPerSheet} tira(s)</strong>.</li>
+        ${lateralText}
+        <li><strong>Total:</strong> ${formatNumber(placement.sheetsRequired, 0)} hojas para cubrir la pared.</li>
+      </ul>
+    `;
   } else if (placement.mode === "stacked-with-top-cut") {
     const orientationText = placement.rotated ? " con la hoja girada" : "";
     const usageParts = [];
 
     if (placement.fullBodySheets > 0) {
-      usageParts.push(`${formatNumber(placement.fullBodySheets, 0)} hoja(s) para los paños completos`);
+      usageParts.push(`<li><strong>${formatNumber(placement.fullBodySheets, 0)} hoja(s)</strong> para los paños completos de ${formatNumber(placement.orientedWidth)} x ${formatNumber(placement.orientedHeight)} m.</li>`);
     }
 
     if (placement.widthRemainderSheets > 0) {
-      usageParts.push(`${formatNumber(placement.widthRemainderSheets, 0)} hoja(s) para completar el ancho`);
+      usageParts.push(`<li><strong>${formatNumber(placement.widthRemainderSheets, 0)} hoja(s)</strong> para completar el ancho restante.</li>`);
     }
 
     if (placement.heightRemainderSheets > 0) {
-      usageParts.push(`${formatNumber(placement.heightRemainderSheets, 0)} hoja(s) para los remates de alto de ${formatNumber(placement.rowHeights[placement.rowHeights.length - 1])} m`);
+      usageParts.push(`<li><strong>${formatNumber(placement.heightRemainderSheets, 0)} hoja(s)</strong> para cortar remates superiores de ${formatNumber(placement.rowHeights[placement.rowHeights.length - 1])} m.</li>`);
     }
 
     if (placement.cornerRemainderSheets > 0) {
-      usageParts.push(`${formatNumber(placement.cornerRemainderSheets, 0)} hoja(s) para la esquina de remate`);
+      usageParts.push(`<li><strong>${formatNumber(placement.cornerRemainderSheets, 0)} hoja(s)</strong> para la esquina de remate.</li>`);
     }
 
-    cutSummary.textContent = `Necesitas ${placement.columnWidths.length} columnas${orientationText}. Usas ${usageParts.join(", ")}. En total necesitas ${formatNumber(placement.sheetsRequired, 0)} hojas.`;
+    cutSummary.innerHTML = `
+      <p><strong>Esquema de colocacion:</strong> ${placement.columnWidths.length} columnas${orientationText} para cubrir ${formatNumber(placement.wallWidth)} m x ${formatNumber(placement.wallHeight)} m.</p>
+      <ul>
+        ${usageParts.join("")}
+        <li><strong>Total:</strong> ${formatNumber(placement.sheetsRequired, 0)} hojas para cubrir la pared.</li>
+      </ul>
+    `;
   } else {
     const orientationText = placement.rotated ? " con la hoja girada" : "";
     const widthRemainderText = placement.widthRemainderSheets > 0
-      ? ` y ${formatNumber(placement.widthRemainderSheets, 0)} hoja(s) cortada(s) para completar el ancho`
+      ? `<li><strong>${formatNumber(placement.widthRemainderSheets, 0)} hoja(s)</strong> cortada(s) para completar el ancho.</li>`
       : "";
 
-    cutSummary.textContent = `Necesitas ${placement.columnWidths.length} columnas y ${placement.rowHeights.length} tramos por columna${orientationText}. Usas ${formatNumber(placement.fullBodySheets, 0)} hoja(s) completas${widthRemainderText}. En total necesitas ${formatNumber(placement.sheetsRequired, 0)} hojas.`;
+    cutSummary.innerHTML = `
+      <p><strong>Esquema de colocacion:</strong> ${placement.columnWidths.length} columnas y ${placement.rowHeights.length} tramos por columna${orientationText}.</p>
+      <ul>
+        <li><strong>${formatNumber(placement.fullBodySheets, 0)} hoja(s)</strong> completas.</li>
+        ${widthRemainderText}
+        <li><strong>Total:</strong> ${formatNumber(placement.sheetsRequired, 0)} hojas para cubrir la pared.</li>
+      </ul>
+    `;
   }
 }
 

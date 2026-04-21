@@ -543,6 +543,24 @@ button {
   color: var(--muted);
 }
 
+.cut-summary p {
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.cut-summary ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.cut-summary li + li {
+  margin-top: 4px;
+}
+
+.cut-summary strong {
+  color: var(--text);
+}
+
 .visualization-legend {
   display: flex;
   flex-wrap: wrap;
