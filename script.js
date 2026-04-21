@@ -104,10 +104,14 @@ const coverageSummary = document.querySelector("#coverage-summary");
 const coverageUsed = document.querySelector("#coverage-used");
 const coverageExtra = document.querySelector("#coverage-extra");
 const cutSummary = document.querySelector("#cut-summary");
+const placementOptions = document.querySelector("#placement-options");
+const placementModeButtons = document.querySelectorAll("[data-placement-mode]");
 
 let activeFamilyKey = "revestimiento";
 let activeProductKey = "revestimiento-10mm";
 let activeCalculationType = "squareMeters";
+let activePlacementMode = "tidy";
+let lastCalculation = null;
 
 function getProductsForActiveFamily() {
   return PRODUCT_FAMILIES[activeFamilyKey].products;
@@ -157,7 +161,12 @@ function computeWallPlacement(product, wallWidth, wallHeight) {
   return PlacementEngine.computeWallPlacement(product, wallWidth, wallHeight);
 }
 
+function computeEconomicalPlacement(product, wallWidth, wallHeight) {
+  return PlacementEngine.computeEconomicalPlacement(product, wallWidth, wallHeight);
+}
+
 function renderVisualizationPlaceholder(message) {
+  placementOptions.classList.add("is-hidden");
   visualizationStage.style.height = "";
   visualizationStage.innerHTML = `<div class="visualization-placeholder">${message}</div>`;
   visualSurfaceLabel.textContent = "Esperando calculo";
@@ -166,6 +175,16 @@ function renderVisualizationPlaceholder(message) {
   coverageSummary.textContent = "Calcula para ver la diferencia entre pedido y cobertura.";
   coverageUsed.style.width = "0%";
   coverageExtra.style.width = "0%";
+}
+
+function updatePlacementOptions() {
+  const canCompare = Boolean(lastCalculation?.tidyPlacement && lastCalculation?.economicalPlacement);
+
+  placementOptions.classList.toggle("is-hidden", !canCompare);
+
+  placementModeButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.placementMode === activePlacementMode);
+  });
 }
 
 function setVisualizationStageHeight(payload) {
@@ -312,19 +331,112 @@ function renderPlacementVisualization(placement, product, area, totalCoveredArea
     `;
   } else {
     const orientationText = placement.rotated ? " con la hoja girada" : "";
-    const widthRemainderText = placement.widthRemainderSheets > 0
-      ? `<li><strong>${formatNumber(placement.widthRemainderSheets, 0)} hoja(s)</strong> cortada(s) para completar el ancho.</li>`
-      : "";
+    const usageParts = [];
+
+    if (placement.fullBodySheets > 0) {
+      usageParts.push(`<li><strong>${formatNumber(placement.fullBodySheets, 0)} hoja(s)</strong> completas.</li>`);
+    }
+
+    if (placement.widthRemainderSheets > 0) {
+      usageParts.push(`<li><strong>${formatNumber(placement.widthRemainderSheets, 0)} hoja(s)</strong> cortada(s) para formar tiras de ${formatNumber(placement.wallWidth)} m.</li>`);
+    }
 
     cutSummary.innerHTML = `
       <p><strong>Esquema de colocacion:</strong> ${placement.columnWidths.length} columnas y ${placement.rowHeights.length} tramos por columna${orientationText}.</p>
       <ul>
-        <li><strong>${formatNumber(placement.fullBodySheets, 0)} hoja(s)</strong> completas.</li>
-        ${widthRemainderText}
+        ${usageParts.join("")}
         <li><strong>Total:</strong> ${formatNumber(placement.sheetsRequired, 0)} hojas para cubrir la pared.</li>
       </ul>
     `;
   }
+}
+
+function renderEconomicalVisualization(placement, product, area, totalCoveredArea, overflowArea) {
+  const stageWidth = visualizationStage.clientWidth || 520;
+  const stageHeight = visualizationStage.clientHeight || 300;
+  const paddingX = 44;
+  const topReserve = 52;
+  const bottomReserve = 48;
+  const usableHeight = Math.max(stageHeight - topReserve - bottomReserve, 140);
+  const scale = Math.min((stageWidth - (paddingX * 2)) / placement.wallWidth, usableHeight / placement.wallHeight);
+  const surfaceWidth = Math.max(placement.wallWidth * scale, 48);
+  const surfaceHeight = Math.max(placement.wallHeight * scale, 48);
+  const surfaceLeft = (stageWidth - surfaceWidth) / 2;
+  const surfaceTop = topReserve + ((usableHeight - surfaceHeight) / 2);
+  const stageMarkup = [];
+
+  stageMarkup.push(`
+    <div
+      class="visualization-surface"
+      style="left:${surfaceLeft}px; top:${surfaceTop}px; width:${surfaceWidth}px; height:${surfaceHeight}px;"
+      title="Superficie solicitada"
+    ></div>
+    <div
+      class="dimension-line horizontal"
+      style="left:${surfaceLeft}px; top:${surfaceTop - 18}px; width:${surfaceWidth}px;"
+    ></div>
+    <div
+      class="dimension-label"
+      style="left:${surfaceLeft + (surfaceWidth / 2) - 28}px; top:${surfaceTop - 34}px;"
+    >${formatNumber(placement.wallWidth)} m</div>
+    <div
+      class="dimension-line vertical"
+      style="left:${surfaceLeft - 18}px; top:${surfaceTop}px; height:${surfaceHeight}px;"
+    ></div>
+    <div
+      class="dimension-label"
+      style="left:${surfaceLeft - 42}px; top:${surfaceTop + (surfaceHeight / 2) - 10}px;"
+    >${formatNumber(placement.wallHeight)} m</div>
+  `);
+
+  let accumulatedTop = surfaceTop;
+  let pieceCounter = 1;
+
+  placement.splicedRows.forEach((row) => {
+    const rowHeight = Math.max(row.height * scale, 8);
+    let accumulatedLeft = surfaceLeft;
+
+    row.segments.forEach((segment, segmentIndex) => {
+      const segmentWidth = Math.max(segment.width * scale, 8);
+      const isSplice = row.segments.length > 1;
+      const showMeasure = segmentWidth >= 34 && rowHeight >= 14;
+
+      stageMarkup.push(`
+        <div
+          class="visualization-sheet${isSplice ? " visualization-splice" : ""}"
+          style="left:${accumulatedLeft}px; top:${accumulatedTop}px; width:${segmentWidth}px; height:${rowHeight}px;"
+          title="${isSplice ? "Pedazo empalmado" : "Tira entera"} ${pieceCounter}: ${formatNumber(segment.width)} m"
+        >
+          ${showMeasure ? `<span class="piece-measure">${formatNumber(segment.width)} m</span>` : ""}
+        </div>
+      `);
+
+      accumulatedLeft += segmentWidth;
+      pieceCounter += 1;
+    });
+
+    accumulatedTop += rowHeight;
+  });
+
+  visualizationStage.innerHTML = stageMarkup.join("");
+  visualSurfaceLabel.textContent = `${formatNumber(area)} m² · ${formatNumber(placement.wallWidth)} m x ${formatNumber(placement.wallHeight)} m`;
+  visualCoverageLabel.textContent = `${formatNumber(totalCoveredArea)} m²`;
+
+  const usedPercent = totalCoveredArea > 0 ? clamp((area / totalCoveredArea) * 100, 0, 100) : 0;
+  const extraPercent = totalCoveredArea > 0 ? 100 - usedPercent : 0;
+
+  coverageSummary.textContent = `Modo economico: pedis ${formatNumber(area)} m², las ${formatNumber(placement.sheetsRequired, 0)} hojas cubren ${formatNumber(totalCoveredArea)} m² y dejan ${formatNumber(overflowArea)} m² de excedente aproximado.`;
+  coverageUsed.style.width = `${usedPercent}%`;
+  coverageExtra.style.width = `${extraPercent}%`;
+
+  cutSummary.innerHTML = `
+    <p><strong>Esquema economico:</strong> usa sobrantes y acepta empalmes visibles dentro del paño.</p>
+    <ul>
+      <li><strong>${formatNumber(placement.sheetsRequired, 0)} hoja(s)</strong> para cubrir ${formatNumber(placement.wallWidth)} m x ${formatNumber(placement.wallHeight)} m.</li>
+      <li><strong>${formatNumber(placement.requiredPieces, 0)} pedazo(s)</strong> colocados en total.</li>
+      <li>Las franjas con números muestran donde se incrustan pedazos recortados.</li>
+    </ul>
+  `;
 }
 
 function renderAreaVisualization(area, sheets, totalCoveredArea, overflowArea, product) {
@@ -383,6 +495,17 @@ function renderAreaVisualization(area, sheets, totalCoveredArea, overflowArea, p
 function renderVisualization(payload) {
   setVisualizationStageHeight(payload);
 
+  if (payload.placement?.mode === "economical-spliced") {
+    renderEconomicalVisualization(
+      payload.placement,
+      payload.product,
+      payload.area,
+      payload.totalCoveredArea,
+      payload.overflowArea,
+    );
+    return;
+  }
+
   if (payload.placement) {
     renderPlacementVisualization(
       payload.placement,
@@ -435,6 +558,39 @@ function renderResult({ sheets, area, exactSheets, totalPrice, productName }) {
   `;
 }
 
+function renderCurrentCalculation() {
+  if (!lastCalculation) {
+    return;
+  }
+
+  const selectedPlacement = activePlacementMode === "economical"
+    ? lastCalculation.economicalPlacement
+    : lastCalculation.tidyPlacement;
+  const sheets = selectedPlacement?.sheetsRequired ?? lastCalculation.sheets;
+  const totalCoveredArea = selectedPlacement?.totalCoveredArea ?? lastCalculation.totalCoveredArea;
+  const overflowArea = Math.max(totalCoveredArea - lastCalculation.area, 0);
+  const totalPrice = sheets * lastCalculation.product.pricePerSheet;
+
+  renderResult({
+    sheets,
+    area: lastCalculation.area,
+    exactSheets: lastCalculation.exactSheets,
+    totalPrice,
+    productName: lastCalculation.product.name,
+  });
+
+  renderVisualization({
+    area: lastCalculation.area,
+    sheets,
+    totalCoveredArea,
+    overflowArea,
+    product: lastCalculation.product,
+    placement: selectedPlacement,
+  });
+
+  updatePlacementOptions();
+}
+
 function renderError(message) {
   calculatorResult.innerHTML = `
     <p class="result-label">Cantidad a vender</p>
@@ -447,6 +603,8 @@ function renderError(message) {
 }
 
 function resetResult() {
+  lastCalculation = null;
+  activePlacementMode = "tidy";
   renderError("Elegi el tipo de calculo y completa los datos para obtener el resultado.");
 }
 
@@ -521,6 +679,13 @@ calculationTypeInputs.forEach((input) => {
   });
 });
 
+placementModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    activePlacementMode = button.dataset.placementMode;
+    renderCurrentCalculation();
+  });
+});
+
 calculatorForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
@@ -537,40 +702,32 @@ calculatorForm.addEventListener("submit", (event) => {
   }
 
   const product = getActiveProduct();
-  let exactSheets = area / getProductArea(product);
+  const exactSheets = area / getProductArea(product);
   let sheets = calculateSheetsByArea(area, product);
   let totalCoveredArea = sheets * getProductArea(product);
-  let overflowArea = Math.max(totalCoveredArea - area, 0);
-  let placement = null;
+  let tidyPlacement = null;
+  let economicalPlacement = null;
 
   if (activeCalculationType === "wallDimensions") {
     const wallWidth = Number(formData.get("wallWidth"));
     const wallHeight = Number(formData.get("wallHeight"));
-    placement = computeWallPlacement(product, wallWidth, wallHeight);
-    exactSheets = area / getProductArea(product);
-    sheets = placement.sheetsRequired;
-    totalCoveredArea = placement.totalCoveredArea;
-    overflowArea = Math.max(totalCoveredArea - area, 0);
+    tidyPlacement = computeWallPlacement(product, wallWidth, wallHeight);
+    economicalPlacement = computeEconomicalPlacement(product, wallWidth, wallHeight);
+    sheets = tidyPlacement.sheetsRequired;
+    totalCoveredArea = tidyPlacement.totalCoveredArea;
   }
 
-  const totalPrice = sheets * product.pricePerSheet;
-
-  renderResult({
+  lastCalculation = {
     sheets,
     area,
     exactSheets,
-    totalPrice,
-    productName: product.name,
-  });
-
-  renderVisualization({
-    area,
-    sheets,
     totalCoveredArea,
-    overflowArea,
     product,
-    placement,
-  });
+    tidyPlacement,
+    economicalPlacement,
+  };
+  activePlacementMode = "tidy";
+  renderCurrentCalculation();
 });
 
 renderProductOptions();

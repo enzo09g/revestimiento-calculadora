@@ -135,8 +135,105 @@
     return placements[0];
   }
 
+  function buildEconomicalRows(wallWidth, wallHeight, stripLength, stripThickness, sheetCount) {
+    const rowCount = Math.ceil(wallHeight / stripThickness);
+    const rows = Array.from({ length: rowCount }, (_, rowIndex) => {
+      const consumedHeight = rowIndex * stripThickness;
+      const rowHeight = Math.min(stripThickness, wallHeight - consumedHeight);
+
+      return {
+        height: rowHeight,
+        segments: [],
+      };
+    });
+    const sheetRemaining = Array(sheetCount).fill(stripLength);
+    let segmentCount = 0;
+
+    for (const row of rows) {
+      let remainingWidth = wallWidth;
+
+      while (remainingWidth > EPSILON) {
+        const sheetIndex = sheetRemaining.findIndex((remaining) => remaining > EPSILON);
+
+        if (sheetIndex === -1) {
+          return null;
+        }
+
+        const segmentWidth = Math.min(remainingWidth, sheetRemaining[sheetIndex]);
+        row.segments.push({
+          sheetIndex,
+          width: segmentWidth,
+        });
+        sheetRemaining[sheetIndex] -= segmentWidth;
+        remainingWidth -= segmentWidth;
+        segmentCount += 1;
+      }
+    }
+
+    return {
+      rows,
+      segmentCount,
+      sheetRemaining,
+    };
+  }
+
+  function computeEconomicalOrientation(product, wallWidth, wallHeight, stripLength, stripThickness, rotated) {
+    const area = wallWidth * wallHeight;
+    let sheetCount = calculateSheetsByArea(area, product);
+    let economicalRows = null;
+
+    while (!economicalRows && sheetCount < 500) {
+      economicalRows = buildEconomicalRows(wallWidth, wallHeight, stripLength, stripThickness, sheetCount);
+
+      if (!economicalRows) {
+        sheetCount += 1;
+      }
+    }
+
+    if (!economicalRows) {
+      return null;
+    }
+
+    return {
+      mode: "economical-spliced",
+      wallWidth,
+      wallHeight,
+      orientedWidth: stripLength,
+      orientedHeight: stripThickness,
+      rotated,
+      rowHeights: economicalRows.rows.map((row) => row.height),
+      splicedRows: economicalRows.rows,
+      requiredPieces: economicalRows.segmentCount,
+      sheetsRequired: sheetCount,
+      totalCoveredArea: sheetCount * getProductArea(product),
+      leftoverArea: sheetCount * getProductArea(product) - area,
+    };
+  }
+
+  function computeEconomicalPlacement(product, wallWidth, wallHeight) {
+    const placements = [
+      computeEconomicalOrientation(product, wallWidth, wallHeight, product.widthMeters, product.heightMeters, false),
+      computeEconomicalOrientation(product, wallWidth, wallHeight, product.heightMeters, product.widthMeters, true),
+    ].filter(Boolean);
+
+    placements.sort((left, right) => {
+      if (left.sheetsRequired !== right.sheetsRequired) {
+        return left.sheetsRequired - right.sheetsRequired;
+      }
+
+      if (left.requiredPieces !== right.requiredPieces) {
+        return left.requiredPieces - right.requiredPieces;
+      }
+
+      return Number(left.rotated) - Number(right.rotated);
+    });
+
+    return placements[0];
+  }
+
   const api = {
     calculateSheetsByArea,
+    computeEconomicalPlacement,
     computeWallPlacement,
     getProductArea,
   };

@@ -1,4 +1,4 @@
-const { calculateSheetsByArea, computeWallPlacement } = require("./placement-engine");
+const { calculateSheetsByArea, computeEconomicalPlacement, computeWallPlacement } = require("./placement-engine");
 
 const products = {
   revestimiento10: { widthMeters: 0.25, heightMeters: 2.7 },
@@ -48,6 +48,16 @@ const cases = [
     name: "pared 3x2.5 cielo raso 4m",
     actual: () => computeWallPlacement(products.cielo4, 3, 2.5).sheetsRequired,
     expected: 13,
+  },
+  {
+    name: "economico 4.6x3.2 cielo raso 6m",
+    actual: () => computeEconomicalPlacement(products.cielo6, 4.6, 3.2).sheetsRequired,
+    expected: 13,
+  },
+  {
+    name: "economico 4.6x3.2 revestimiento 10mm",
+    actual: () => computeEconomicalPlacement(products.revestimiento10, 4.6, 3.2).sheetsRequired,
+    expected: 23,
   },
 ];
 
