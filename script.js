@@ -107,6 +107,9 @@ const cutSummary = document.querySelector("#cut-summary");
 const placementOptions = document.querySelector("#placement-options");
 const placementModeButtons = document.querySelectorAll("[data-placement-mode]");
 const printVisualizationButton = document.querySelector("#print-visualization");
+const printProductName = document.querySelector("#print-product-name");
+const printSheetsCount = document.querySelector("#print-sheets-count");
+const printTotalPrice = document.querySelector("#print-total-price");
 
 let activeFamilyKey = "revestimiento";
 let activeProductKey = "revestimiento-10mm";
@@ -198,6 +201,11 @@ function updatePlacementOptions() {
 }
 
 function setVisualizationStageHeight(payload) {
+  if (document.body.classList.contains("is-printing-visualization")) {
+    visualizationStage.style.height = "423px";
+    return;
+  }
+
   const stageWidth = visualizationStage.clientWidth || 520;
   let nextHeight = 460;
 
@@ -572,6 +580,10 @@ function renderResult({ sheets, area, exactSheets, totalPrice, productName }) {
       Calculo exacto: ${formatNumber(exactSheets)} hojas. Se redondea siempre para arriba.
     </p>
   `;
+
+  printProductName.textContent = productName;
+  printSheetsCount.textContent = `${formatNumber(sheets, 0)} hojas`;
+  printTotalPrice.textContent = formatCurrency(totalPrice);
 }
 
 function renderCurrentCalculation() {
@@ -615,6 +627,9 @@ function renderError(message) {
     <p class="result-detail">${message}</p>
   `;
 
+  printProductName.textContent = "Sin calcular";
+  printSheetsCount.textContent = "0 hojas";
+  printTotalPrice.textContent = "$ 0";
   renderVisualizationPlaceholder(message);
 }
 
@@ -695,6 +710,22 @@ calculationTypeInputs.forEach((input) => {
   });
 });
 
+function preparePrintLayout() {
+  document.body.classList.add("is-printing-visualization");
+
+  if (lastCalculation) {
+    renderCurrentCalculation();
+  }
+}
+
+function restorePrintLayout() {
+  document.body.classList.remove("is-printing-visualization");
+
+  if (lastCalculation) {
+    renderCurrentCalculation();
+  }
+}
+
 placementModeButtons.forEach((button) => {
   button.addEventListener("click", () => {
     activePlacementMode = button.dataset.placementMode;
@@ -703,16 +734,16 @@ placementModeButtons.forEach((button) => {
 });
 
 printVisualizationButton.addEventListener("click", () => {
-  document.body.classList.add("is-printing-visualization");
+  preparePrintLayout();
   window.print();
 });
 
 window.addEventListener("beforeprint", () => {
-  document.body.classList.add("is-printing-visualization");
+  preparePrintLayout();
 });
 
 window.addEventListener("afterprint", () => {
-  document.body.classList.remove("is-printing-visualization");
+  restorePrintLayout();
 });
 
 calculatorForm.addEventListener("submit", (event) => {
