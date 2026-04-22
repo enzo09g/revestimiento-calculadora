@@ -775,6 +775,12 @@ calculatorForm.addEventListener("submit", (event) => {
     economicalPlacement = computeEconomicalPlacement(product, wallWidth, wallHeight);
     sheets = tidyPlacement.sheetsRequired;
     totalCoveredArea = tidyPlacement.totalCoveredArea;
+  } else {
+    const { widthMeters, heightMeters } = getVisualizationDimensions(area);
+    tidyPlacement = computeWallPlacement(product, widthMeters, heightMeters);
+    economicalPlacement = computeEconomicalPlacement(product, widthMeters, heightMeters);
+    sheets = tidyPlacement.sheetsRequired;
+    totalCoveredArea = tidyPlacement.totalCoveredArea;
   }
 
   lastCalculation = {
