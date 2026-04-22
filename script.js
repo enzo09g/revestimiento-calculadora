@@ -106,6 +106,7 @@ const coverageExtra = document.querySelector("#coverage-extra");
 const cutSummary = document.querySelector("#cut-summary");
 const placementOptions = document.querySelector("#placement-options");
 const placementModeButtons = document.querySelectorAll("[data-placement-mode]");
+const printVisualizationButton = document.querySelector("#print-visualization");
 
 let activeFamilyKey = "revestimiento";
 let activeProductKey = "revestimiento-10mm";
@@ -163,6 +164,15 @@ function computeWallPlacement(product, wallWidth, wallHeight) {
 
 function computeEconomicalPlacement(product, wallWidth, wallHeight) {
   return PlacementEngine.computeEconomicalPlacement(product, wallWidth, wallHeight);
+}
+
+function getPrintableMeasureClass(measureKey, printedMeasureKeys) {
+  if (printedMeasureKeys.has(measureKey)) {
+    return "";
+  }
+
+  printedMeasureKeys.add(measureKey);
+  return " is-print-key";
 }
 
 function renderVisualizationPlaceholder(message) {
@@ -250,6 +260,7 @@ function renderPlacementVisualization(placement, product, area, totalCoveredArea
 
   let pieceCounter = 1;
   let accumulatedLeft = surfaceLeft;
+  const printedMeasureKeys = new Set();
 
   placement.columnWidths.forEach((columnWidth, columnIndex) => {
     const placedWidth = Math.max(columnWidth * scale, 8);
@@ -260,6 +271,7 @@ function renderPlacementVisualization(placement, product, area, totalCoveredArea
       const showPieceNumber = placement.requiredPieces <= 24 && placedWidth >= 24 && placedHeight >= 20;
       const isRemainderPiece = placement.mode === "stacked-with-top-cut" && rowIndex === placement.rowHeights.length - 1;
       const pieceMeasureLabel = `${formatNumber(columnWidth)} m x ${formatNumber(rowHeight)} m`;
+      const printMeasureClass = getPrintableMeasureClass(`${columnWidth}:${rowHeight}`, printedMeasureKeys);
 
       stageMarkup.push(`
         <div
@@ -268,7 +280,7 @@ function renderPlacementVisualization(placement, product, area, totalCoveredArea
           title="${isRemainderPiece ? "Remate colocado" : "Pieza"} ${pieceCounter}: ${pieceMeasureLabel}"
         >
           ${showPieceNumber ? `<span>${pieceCounter}</span>` : ""}
-          <span class="piece-measure">${pieceMeasureLabel}</span>
+          <span class="piece-measure${printMeasureClass}">${pieceMeasureLabel}</span>
         </div>
       `);
 
@@ -393,6 +405,7 @@ function renderEconomicalVisualization(placement, product, area, totalCoveredAre
 
   let accumulatedTop = surfaceTop;
   let pieceCounter = 1;
+  const printedMeasureKeys = new Set();
 
   placement.splicedRows.forEach((row) => {
     const rowHeight = Math.max(row.height * scale, 8);
@@ -401,15 +414,16 @@ function renderEconomicalVisualization(placement, product, area, totalCoveredAre
     row.segments.forEach((segment, segmentIndex) => {
       const segmentWidth = Math.max(segment.width * scale, 8);
       const isSplice = row.segments.length > 1;
-      const showMeasure = segmentWidth >= 34 && rowHeight >= 14;
+      const pieceMeasureLabel = `${formatNumber(segment.width)} m x ${formatNumber(row.height)} m`;
+      const printMeasureClass = getPrintableMeasureClass(`${segment.width}:${row.height}`, printedMeasureKeys);
 
       stageMarkup.push(`
         <div
           class="visualization-sheet${isSplice ? " visualization-splice" : ""}"
           style="left:${accumulatedLeft}px; top:${accumulatedTop}px; width:${segmentWidth}px; height:${rowHeight}px;"
-          title="${isSplice ? "Pedazo empalmado" : "Tira entera"} ${pieceCounter}: ${formatNumber(segment.width)} m"
+          title="${isSplice ? "Pedazo empalmado" : "Tira entera"} ${pieceCounter}: ${pieceMeasureLabel}"
         >
-          ${showMeasure ? `<span class="piece-measure">${formatNumber(segment.width)} m</span>` : ""}
+          <span class="piece-measure${printMeasureClass}">${pieceMeasureLabel}</span>
         </div>
       `);
 
@@ -686,6 +700,19 @@ placementModeButtons.forEach((button) => {
     activePlacementMode = button.dataset.placementMode;
     renderCurrentCalculation();
   });
+});
+
+printVisualizationButton.addEventListener("click", () => {
+  document.body.classList.add("is-printing-visualization");
+  window.print();
+});
+
+window.addEventListener("beforeprint", () => {
+  document.body.classList.add("is-printing-visualization");
+});
+
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("is-printing-visualization");
 });
 
 calculatorForm.addEventListener("submit", (event) => {

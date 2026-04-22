@@ -320,6 +320,24 @@ h2 {
   opacity: 0.42;
 }
 
+.print-button {
+  width: auto;
+  min-width: 154px;
+  padding: 10px 14px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background:
+    linear-gradient(135deg, rgba(49, 247, 208, 0.15), rgba(66, 165, 255, 0.1));
+  color: var(--ui-text);
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.print-button:hover {
+  border-color: var(--ui-line-strong);
+  box-shadow: 0 12px 28px rgba(49, 247, 208, 0.14);
+}
+
 .family-switch,
 .calculation-switch,
 .product-grid {
@@ -993,6 +1011,194 @@ button:active {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  body.is-printing-visualization {
+    background: #ffffff !important;
+    color: #101820 !important;
+  }
+
+  body.is-printing-visualization::before,
+  body.is-printing-visualization .breadcrumbs,
+  body.is-printing-visualization .catalog-layout,
+  body.is-printing-visualization .print-button,
+  body.is-printing-visualization .visualization-legend,
+  body.is-printing-visualization .info-copy {
+    display: none !important;
+  }
+
+  body.is-printing-visualization .page {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  body.is-printing-visualization .visualization-panel {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    color: #101820 !important;
+    overflow: visible !important;
+  }
+
+  body.is-printing-visualization .visualization-panel::before,
+  body.is-printing-visualization .section-heading::after {
+    display: none !important;
+  }
+
+  body.is-printing-visualization .section-heading {
+    margin: 0 0 6mm !important;
+    display: block !important;
+  }
+
+  body.is-printing-visualization h2,
+  body.is-printing-visualization .section-kicker,
+  body.is-printing-visualization .visual-label,
+  body.is-printing-visualization .visualization-head strong,
+  body.is-printing-visualization .coverage-copy strong {
+    color: #101820 !important;
+  }
+
+  body.is-printing-visualization .visualization-shell {
+    gap: 4mm !important;
+    margin: 0 !important;
+  }
+
+  body.is-printing-visualization .visualization-head {
+    border: 1px solid #d4dde3;
+    border-radius: 6px;
+    padding: 3mm 4mm;
+    background: #f7fafb;
+  }
+
+  body.is-printing-visualization .visualization-stage {
+    height: 150mm !important;
+    min-height: 150mm !important;
+    border: 1px solid #9aaab4 !important;
+    border-radius: 6px !important;
+    background:
+      linear-gradient(rgba(35, 70, 82, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(35, 70, 82, 0.08) 1px, transparent 1px),
+      #f8fbfc !important;
+    background-size: 8mm 8mm !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body.is-printing-visualization .visualization-surface {
+    border-color: #245d69 !important;
+    background: rgba(36, 93, 105, 0.06) !important;
+  }
+
+  body.is-printing-visualization .visualization-sheet {
+    border-color: #087f8f !important;
+    background: rgba(8, 127, 143, 0.2) !important;
+    box-shadow: none !important;
+  }
+
+  body.is-printing-visualization .visualization-remate {
+    border-color: #b83266 !important;
+    background:
+      repeating-linear-gradient(
+        135deg,
+        rgba(184, 50, 102, 0.18) 0,
+        rgba(184, 50, 102, 0.18) 5px,
+        rgba(255, 255, 255, 0.7) 5px,
+        rgba(255, 255, 255, 0.7) 9px
+      ) !important;
+  }
+
+  body.is-printing-visualization .visualization-splice {
+    border-color: #5f8f20 !important;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgba(95, 143, 32, 0.2) 0,
+        rgba(95, 143, 32, 0.2) 6px,
+        rgba(255, 255, 255, 0.72) 6px,
+        rgba(255, 255, 255, 0.72) 10px
+      ) !important;
+  }
+
+  body.is-printing-visualization .piece-measure {
+    top: 50% !important;
+    left: 50% !important;
+    display: none !important;
+    max-width: 36mm;
+    padding: 1.8mm 2.4mm;
+    border: 1px solid #101820 !important;
+    border-radius: 999px;
+    background: #ffffff !important;
+    color: #101820 !important;
+    font-size: 7pt !important;
+    line-height: 1.1;
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) !important;
+    box-shadow: none !important;
+    white-space: nowrap;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body.is-printing-visualization .piece-measure::after {
+    display: none !important;
+  }
+
+  body.is-printing-visualization .piece-measure.is-print-key {
+    display: block !important;
+  }
+
+  body.is-printing-visualization .visualization-sheet > span:not(.piece-measure),
+  body.is-printing-visualization .visualization-overflow > span:not(.piece-measure) {
+    display: none !important;
+  }
+
+  body.is-printing-visualization .dimension-line,
+  body.is-printing-visualization .dimension-line::before,
+  body.is-printing-visualization .dimension-line::after {
+    border-color: #245d69 !important;
+  }
+
+  body.is-printing-visualization .dimension-label {
+    background: #ffffff !important;
+    border: 1px solid #245d69;
+    color: #101820 !important;
+    box-shadow: none !important;
+  }
+
+  body.is-printing-visualization .cut-summary,
+  body.is-printing-visualization .coverage-block {
+    border: 1px solid #d4dde3 !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+    color: #101820 !important;
+    page-break-inside: avoid;
+  }
+
+  body.is-printing-visualization .cut-summary p,
+  body.is-printing-visualization .cut-summary strong {
+    color: #101820 !important;
+  }
+
+  body.is-printing-visualization .coverage-meter {
+    background: #dfe8ed !important;
+  }
+
+  body.is-printing-visualization .coverage-used {
+    background: #087f8f !important;
+  }
+
+  body.is-printing-visualization .coverage-extra {
+    background: #b83266 !important;
   }
 }
 
