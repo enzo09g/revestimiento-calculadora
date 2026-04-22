@@ -259,14 +259,16 @@ function renderPlacementVisualization(placement, product, area, totalCoveredArea
       const placedHeight = Math.max(rowHeight * scale, 12);
       const showPieceNumber = placement.requiredPieces <= 24 && placedWidth >= 24 && placedHeight >= 20;
       const isRemainderPiece = placement.mode === "stacked-with-top-cut" && rowIndex === placement.rowHeights.length - 1;
+      const pieceMeasureLabel = `${formatNumber(columnWidth)} m x ${formatNumber(rowHeight)} m`;
 
       stageMarkup.push(`
         <div
           class="visualization-sheet${isRemainderPiece ? " visualization-remate" : ""}"
           style="left:${accumulatedLeft}px; top:${accumulatedTop}px; width:${placedWidth}px; height:${placedHeight}px;"
-          title="${isRemainderPiece ? "Remate colocado" : "Pieza"} ${pieceCounter}"
+          title="${isRemainderPiece ? "Remate colocado" : "Pieza"} ${pieceCounter}: ${pieceMeasureLabel}"
         >
           ${showPieceNumber ? `<span>${pieceCounter}</span>` : ""}
+          <span class="piece-measure">${pieceMeasureLabel}</span>
         </div>
       `);
 
